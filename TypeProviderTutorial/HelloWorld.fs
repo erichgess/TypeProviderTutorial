@@ -39,7 +39,8 @@ type HelloWorldTypeProvider(config: TypeProviderConfig) as this =
             let imI = index
             let instProperty = ProvidedProperty(col,
                                                 typeof<int>,
-                                                GetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[imI] @@>))
+                                                GetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[imI] @@>),
+                                                SetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[imI] <- (%%args.[1] : int) @@>))
             t.AddMember instProperty
             index <- index + 1
 
