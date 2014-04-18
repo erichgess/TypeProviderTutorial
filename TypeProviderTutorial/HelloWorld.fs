@@ -23,31 +23,10 @@ type HelloWorldTypeProvider(config: TypeProviderConfig) as this =
     let CreateType (columns: string list) =
         let t = ProvidedTypeDefinition(thisAssembly,namespaceName,
                                         "Hello",
-                                        baseType = Some typeof<obj>)
-
-        let staticProp = ProvidedProperty(propertyName = "StaticProperty", 
-                                            propertyType = typeof<string>, 
-                                            IsStatic=true,
-                                            GetterCode= (fun args -> <@@ "World!" @@>))
-
-        // Add documentation to the provided static property.
-        staticProp.AddXmlDocDelayed(fun () -> "This is a static property")
-
-        // Add the static property to the type.
-        t.AddMember staticProp
-
-        // Add a static method
-        let staticMeth = 
-            ProvidedMethod(methodName = "StaticMethod", 
-                           parameters = [], 
-                           returnType = typeof<string>, 
-                           IsStaticMethod = true,
-                           InvokeCode = (fun args -> 
-                              <@@ "World!" @@>))
-        t.AddMember staticMeth
+                                        baseType = Some typeof<TutorialType>)
 
         let ctor = ProvidedConstructor(parameters = [ ], 
-                                       InvokeCode= (fun args -> <@@ 0 :> obj @@>))
+                                       InvokeCode= (fun args -> <@@ Array.init columns.Length (fun i -> 0) @@>))
 
         // Add documentation to the provided constructor.
         ctor.AddXmlDocDelayed(fun () -> "This is the default constructor.  It sets the value of Hello to 0.")
@@ -55,31 +34,18 @@ type HelloWorldTypeProvider(config: TypeProviderConfig) as this =
         // Add the provided constructor to the provided type.
         t.AddMember ctor
 
-        let ctorParams = ProvidedConstructor(parameters = [ ProvidedParameter("v", typeof<int>)], 
-                                       InvokeCode= (fun args -> <@@ ( %%(args.[0]) : int) :> obj @@>))
-
-        // Add documentation to the provided constructor.
-        ctorParams.AddXmlDocDelayed(fun () -> "This another constructor.  It sets the value of Hello to the parametr.")
-
-        // Add the provided constructor to the provided type.
-        t.AddMember ctorParams
-
-        let instProperty = ProvidedProperty("Value",
-                                            typeof<int>,
-                                            GetterCode = (fun args -> <@@ (%%(args.[0]) : obj) :?> int @@>))
-        t.AddMember instProperty
-
-        let instanceMeth = 
-            ProvidedMethod(methodName = "DoubleValue", 
-                           parameters = [], 
-                           returnType = typeof<int>,
-                           InvokeCode = (fun args -> 
-                              <@@ ((%%(args.[0]) : obj) :?> int) * 2 @@>))
-        t.AddMember instanceMeth
+        let mutable index = 0
+        for col in columns do
+            let imI = index
+            let instProperty = ProvidedProperty(col,
+                                                typeof<int>,
+                                                GetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[imI] @@>))
+            t.AddMember instProperty
+            index <- index + 1
 
         t
 
-    let types = [ CreateType() ] 
+    let types = [ CreateType(["Tom"; "Dick"; "Harry"]) ] 
 
     // And add them to the namespace
     do this.AddNamespace(namespaceName, types)
