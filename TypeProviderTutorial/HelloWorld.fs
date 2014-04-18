@@ -34,16 +34,11 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
         // Add the provided constructor to the provided type.
         t.AddMember ctor
 
-        let mutable index = 0
-        for col in columns do
-            let imI = index
-            let instProperty = ProvidedProperty(col,
+        columns |> List.mapi ( fun i col -> ProvidedProperty(col,
                                                 typeof<int>,
-                                                GetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[imI] @@>),
-                                                SetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[imI] <- (%%args.[1] : int) @@>))
-            t.AddMember instProperty
-            index <- index + 1
-
+                                                GetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[i] @@>),
+                                                SetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[i] <- (%%args.[1] : int) @@>)))
+                |> List.iter t.AddMember
         t
 
     let types = [ CreateType(["Tom"; "Dick"; "Harry"]) ] 
