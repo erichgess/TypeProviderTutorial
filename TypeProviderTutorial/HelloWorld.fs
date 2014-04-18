@@ -29,7 +29,7 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
                                        InvokeCode= (fun args -> <@@ Array.init columns.Length (fun i -> 0) @@>))
 
         // Add documentation to the provided constructor.
-        ctor.AddXmlDocDelayed(fun () -> "This is the default constructor.  It sets the value of Hello to 0.")
+        ctor.AddXmlDocDelayed(fun () -> "This is the default constructor.  It sets the value of TutorialType to 0.")
 
         // Add the provided constructor to the provided type.
         t.AddMember ctor
