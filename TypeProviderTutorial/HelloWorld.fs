@@ -1,4 +1,4 @@
-﻿namespace Samples.FSharp.HelloWorldTypeProvider
+﻿namespace Samples.FSharp.TutorialTypeProvider
 
 open System
 open System.Reflection
@@ -11,7 +11,7 @@ type TutorialType = int array
 // This defines the type provider. When compiled to a DLL it can be added as a reference to an F#
 // command-line compilation, script or project.
 [<TypeProvider>]
-type HelloWorldTypeProvider(config: TypeProviderConfig) as this = 
+type TutorialTypeProvider(config: TypeProviderConfig) as this = 
 
     // Inheriting from this type provides implementations of ITypeProvider in terms of the
     // provided types below.
@@ -22,7 +22,7 @@ type HelloWorldTypeProvider(config: TypeProviderConfig) as this =
     
     let CreateType (columns: string list) =
         let t = ProvidedTypeDefinition(thisAssembly,namespaceName,
-                                        "Hello",
+                                        "TutorialType",
                                         baseType = Some typeof<TutorialType>)
 
         let ctor = ProvidedConstructor(parameters = [ ], 
