@@ -20,7 +20,13 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
     let namespaceName = "Tutorial"
     let thisAssembly = Assembly.GetExecutingAssembly()
     
+    let ValidateColumnSchema (columns: string list) =
+        if columns.Length = 0 then
+            failwith "The column list is empty"
+
     let CreateType (columns: string list) =
+        ValidateColumnSchema columns
+
         let t = ProvidedTypeDefinition(thisAssembly,namespaceName,
                                         "TutorialType",
                                         baseType = Some typeof<TutorialType>)
