@@ -24,6 +24,15 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
         if columns.Length = 0 then
             failwith "The column list is empty"
 
+        let duplicates = columns 
+                            |> Seq.groupBy id
+                            |> Seq.map (fun (word, sq) -> word, Seq.length sq)
+                            |> Seq.filter ( fun (word,sq) -> sq > 1 )
+                            |> Seq.toList
+
+        if duplicates.Length > 0 then
+            failwithf "There are duplicate column names: %A" duplicates
+
     let CreateType (columns: string list) =
         ValidateColumnSchema columns
 
