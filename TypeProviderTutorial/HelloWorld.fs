@@ -20,6 +20,10 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
     let namespaceName = "Tutorial"
     let thisAssembly = Assembly.GetExecutingAssembly()
     
+    // This function will check the list of column names to
+    // verify that the list is:
+    // Not empty
+    // no duplicates
     let ValidateColumnSchema (columns: string list) =
         if columns.Length = 0 then
             failwith "The column list is empty"
