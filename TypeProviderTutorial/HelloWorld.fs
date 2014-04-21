@@ -1,12 +1,34 @@
 ﻿namespace Samples.FSharp.TutorialTypeProvider
 
 open System
+open System.Collections.Generic
 open System.Reflection
 open Samples.FSharp.ProvidedTypes
 open Microsoft.FSharp.Core.CompilerServices
 open Microsoft.FSharp.Quotations
+open Microsoft.FSharp.Reflection
 
 type TutorialType = int array
+
+type private FieldInfo = 
+  { TypeForTuple : Type
+    Property : ProvidedProperty}
+
+type Entity (tableName, columns) =
+    let data = Dictionary<string,obj>()
+    
+    member e.TableName = tableName
+    
+    member e.GetColumn<'T> key : 'T =
+        let defaultValue() =                       
+            if typeof<'T> = typeof<string> then (box String.Empty) :?> 'T
+            else Unchecked.defaultof<'T>
+        if data.ContainsKey key then
+            match data.[key] with
+            | null -> defaultValue()
+            | data -> unbox data
+        else
+            defaultValue()
 
 // This defines the type provider. When compiled to a DLL it can be added as a reference to an F#
 // command-line compilation, script or project.
@@ -40,12 +62,17 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
     let CreateType (columns: string list) =
         ValidateColumnSchema columns
 
-        let t = ProvidedTypeDefinition(thisAssembly,namespaceName,
-                                        "TutorialType",
-                                        baseType = Some typeof<TutorialType>)
+        let fields = columns |> List.mapi ( fun index field ->  {   TypeForTuple = typeof<int>
+                                                                    Property = ProvidedProperty(field, typeof<int>, GetterCode = fun [row] -> Expr.TupleGet(row, index))} )
+        let rowErasedType = 
+            FSharpType.MakeTupleType([| for field in fields -> field.TypeForTuple |]) 
 
+        let t = ProvidedTypeDefinition(thisAssembly,namespaceName,
+                                        "MyType",
+                                        baseType = Some rowErasedType)
+        let defTuple = FSharpValue.MakeTuple(Array.init fields.Length (fun i -> 0:>obj), rowErasedType)
         let ctor = ProvidedConstructor(parameters = [ ], 
-                                       InvokeCode= (fun args -> <@@ Array.init columns.Length (fun i -> 0) @@>))
+                                       InvokeCode= (fun args -> <@@ defTuple @@>))
 
         // Add documentation to the provided constructor.
         ctor.AddXmlDocDelayed(fun () -> "This is the default constructor.  It sets the value of TutorialType to 0.")
@@ -53,11 +80,7 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
         // Add the provided constructor to the provided type.
         t.AddMember ctor
 
-        columns |> List.mapi ( fun i col -> ProvidedProperty(col,
-                                                typeof<int>,
-                                                GetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[i] @@>),
-                                                SetterCode = (fun args -> <@@ (%%args.[0] : TutorialType).[i] <- (%%args.[1] : int) @@>)))
-                |> List.iter t.AddMember
+        fields |> List.map (fun f -> f.Property) |> List.iter t.AddMember
         t
 
     let types = [ CreateType(["Tom"; "Dick"; "Harry"]) ] 
