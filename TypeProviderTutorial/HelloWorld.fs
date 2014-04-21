@@ -79,7 +79,8 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
         t.AddMember ctor
 
         columns |> List.map (fun col -> ProvidedProperty(propertyName = col, propertyType = typeof<int>,
-                                            GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<int>(col) @@> ) ) ) 
+                                            GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<int>(col) @@> ),
+                                            SetterCode = (fun args -> <@@ (%%args.[0] : Entity).SetColumn col (box (%%args.[1]:int)) @@> ) )) 
                 |> List.iter t.AddMember
         t
 
