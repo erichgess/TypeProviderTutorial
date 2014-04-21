@@ -38,7 +38,6 @@ type ColumnType =
     | Integer
     | Float
     | String
-    | DateTime
 
 // This defines the type provider. When compiled to a DLL it can be added as a reference to an F#
 // command-line compilation, script or project.
@@ -96,17 +95,13 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
             | String -> ProvidedProperty(propertyName = name, propertyType = typeof<string>,
                                 GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<string>(name) @@> ),
                                 SetterCode = (fun args -> <@@ (%%args.[0] : Entity).SetColumn name (%%args.[1]:string) @@> ) )
-            | DateTime -> ProvidedProperty(propertyName = name, propertyType = typeof<System.DateTime>,
-                                GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<System.DateTime>(name) @@> ),
-                                SetterCode = (fun args -> <@@ (%%args.[0] : Entity).SetColumn name (%%args.[1]:System.DateTime) @@> ) )
 
 
         columns |> List.map (fun (name,ty) -> CreateProvideProperty name ty ) 
                 |> List.iter t.AddMember
         t
 
-    let types = [ CreateType([("Tom", Integer); ("Dick", Float); ("Harry", DateTime)]) ] 
-
+    let types = [ CreateType([("Tom", Integer); ("Dick", Float); ("Harry", String)])] 
     // And add them to the namespace
     do this.AddNamespace(namespaceName, types)
 
