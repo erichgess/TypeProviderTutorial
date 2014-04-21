@@ -14,10 +14,8 @@ type private FieldInfo =
   { TypeForTuple : Type
     Property : ProvidedProperty}
 
-type Entity (tableName, columns) =
+type Entity () =
     let data = Dictionary<string,obj>()
-    
-    member e.TableName = tableName
     
     member e.GetColumn<'T> key : 'T =
         let defaultValue() =                       
@@ -68,17 +66,11 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
     let CreateType (columns: string list) =
         ValidateColumnSchema columns
 
-        let fields = columns |> List.mapi ( fun index field ->  {   TypeForTuple = typeof<int>
-                                                                    Property = ProvidedProperty(field, typeof<int>, GetterCode = fun [row] -> Expr.TupleGet(row, index))} )
-        let rowErasedType = 
-            FSharpType.MakeTupleType([| for field in fields -> field.TypeForTuple |]) 
-
         let t = ProvidedTypeDefinition(thisAssembly,namespaceName,
                                         "MyType",
-                                        baseType = Some rowErasedType)
-        let defTuple = FSharpValue.MakeTuple(Array.init fields.Length (fun i -> 0:>obj), rowErasedType)
+                                        baseType = Some typeof<Entity>)
         let ctor = ProvidedConstructor(parameters = [ ], 
-                                       InvokeCode= (fun args -> <@@ defTuple @@>))
+                                       InvokeCode= (fun args -> <@@ Entity() @@>))
 
         // Add documentation to the provided constructor.
         ctor.AddXmlDocDelayed(fun () -> "This is the default constructor.  It sets the value of TutorialType to 0.")
@@ -86,7 +78,9 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
         // Add the provided constructor to the provided type.
         t.AddMember ctor
 
-        fields |> List.map (fun f -> f.Property) |> List.iter t.AddMember
+        columns |> List.map (fun col -> ProvidedProperty(propertyName = col, propertyType = typeof<int>,
+                                            GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<int>(col) @@> ) ) ) 
+                |> List.iter t.AddMember
         t
 
     let types = [ CreateType(["Tom"; "Dick"; "Harry"]) ] 
