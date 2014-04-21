@@ -30,6 +30,12 @@ type Entity (tableName, columns) =
         else
             defaultValue()
 
+    member e.SetColumn<'T> key value =
+        if not (data.ContainsKey key) && value <> null then
+            data.Add(key, value)
+        else
+            data.[key] <- value
+
 // This defines the type provider. When compiled to a DLL it can be added as a reference to an F#
 // command-line compilation, script or project.
 [<TypeProvider>]
