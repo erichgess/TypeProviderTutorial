@@ -34,6 +34,11 @@ type Entity () =
         else
             data.[key] <- value
 
+type ColumnType =
+    | Integer
+    | Float
+    | String
+
 // This defines the type provider. When compiled to a DLL it can be added as a reference to an F#
 // command-line compilation, script or project.
 [<TypeProvider>]
@@ -50,11 +55,12 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
     // verify that the list is:
     // Not empty
     // no duplicates
-    let ValidateColumnSchema (columns: string list) =
+    let ValidateColumnSchema (columns:(string*ColumnType) list) =
         if columns.Length = 0 then
             failwith "The column list is empty"
 
         let duplicates = columns 
+                            |> Seq.map (fun (name,ty) -> name)
                             |> Seq.groupBy id
                             |> Seq.map (fun (word, sq) -> word, Seq.length sq)
                             |> Seq.filter ( fun (word,sq) -> sq > 1 )
@@ -63,7 +69,7 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
         if duplicates.Length > 0 then
             failwithf "There are duplicate column names: %A" duplicates
 
-    let CreateType (columns: string list) =
+    let CreateType (columns: (string*ColumnType) list) =
         ValidateColumnSchema columns
 
         let t = ProvidedTypeDefinition(thisAssembly,namespaceName,
@@ -78,13 +84,24 @@ type TutorialTypeProvider(config: TypeProviderConfig) as this =
         // Add the provided constructor to the provided type.
         t.AddMember ctor
 
-        columns |> List.map (fun col -> ProvidedProperty(propertyName = col, propertyType = typeof<int>,
-                                            GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<int>(col) @@> ),
-                                            SetterCode = (fun args -> <@@ (%%args.[0] : Entity).SetColumn col (box (%%args.[1]:int)) @@> ) )) 
+        let CreateProvideProperty name ty =
+            match ty with
+            | Integer -> ProvidedProperty(propertyName = name, propertyType = typeof<int>,
+                                GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<int>(name) @@> ),
+                                SetterCode = (fun args -> <@@ (%%args.[0] : Entity).SetColumn name (box (%%args.[1]:int)) @@> ) )
+            | Float -> ProvidedProperty(propertyName = name, propertyType = typeof<float>,
+                                GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<float>(name) @@> ),
+                                SetterCode = (fun args -> <@@ (%%args.[0] : Entity).SetColumn name (box (%%args.[1]:float)) @@> ) )
+            | String -> ProvidedProperty(propertyName = name, propertyType = typeof<string>,
+                                GetterCode = (fun args -> <@@ (%%args.[0] : Entity).GetColumn<string>(name) @@> ),
+                                SetterCode = (fun args -> <@@ (%%args.[0] : Entity).SetColumn name (%%args.[1]:string) @@> ) )
+
+
+        columns |> List.map (fun (name,ty) -> CreateProvideProperty name ty ) 
                 |> List.iter t.AddMember
         t
 
-    let types = [ CreateType(["Tom"; "Dick"; "Harry"]) ] 
+    let types = [ CreateType([("Tom", Integer); ("Dick", Float); ("Harry", String)]) ] 
 
     // And add them to the namespace
     do this.AddNamespace(namespaceName, types)
